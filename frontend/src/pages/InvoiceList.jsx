@@ -195,6 +195,12 @@ function InvoiceList() {
                 >
                   {sendingEmail === invoice.id ? '📧 Sending...' : '📧 Send Email'}
                 </button>
+                <Link
+                  to={`/edit-invoice/${invoice.id}`}
+                  className="text-sm px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                >
+                  ✏️ Edit
+                </Link>
                 <button
                   onClick={() => handleDelete(invoice.id)}
                   className="text-sm px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"

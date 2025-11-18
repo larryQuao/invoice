@@ -124,6 +124,12 @@ function CustomerList() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <Link
+                      to={`/edit-customer/${customer.id}`}
+                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                    >
+                      Edit
+                    </Link>
                     <button
                       onClick={() => handleDelete(customer.id)}
                       className="text-red-600 hover:text-red-900"

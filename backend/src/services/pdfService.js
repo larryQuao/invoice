@@ -44,26 +44,40 @@ export const generateInvoicePDF = (invoice) => {
         .font('Helvetica-Bold')
         .text('INVOICE', 400, 50, { align: 'right' });
 
-      // Invoice details box
+      // Invoice details box - Right aligned with proper spacing
       const invoiceInfoTop = 150;
+      const labelX = 350;
+      const valueX = 470;
+
+      doc.fontSize(10);
+
+      // Invoice Number
       doc
-        .fontSize(10)
         .font('Helvetica-Bold')
-        .text('Invoice Number:', 400, invoiceInfoTop)
+        .text('Invoice Number:', labelX, invoiceInfoTop, { width: 110, align: 'right' })
         .font('Helvetica')
-        .text(invoice.invoice_number, 500, invoiceInfoTop)
+        .text(invoice.invoice_number, valueX, invoiceInfoTop, { width: 130 });
+
+      // Issue Date
+      doc
         .font('Helvetica-Bold')
-        .text('Issue Date:', 400, invoiceInfoTop + 15)
+        .text('Issue Date:', labelX, invoiceInfoTop + 20, { width: 110, align: 'right' })
         .font('Helvetica')
-        .text(new Date(invoice.issue_date).toLocaleDateString(), 500, invoiceInfoTop + 15)
+        .text(new Date(invoice.issue_date).toLocaleDateString(), valueX, invoiceInfoTop + 20);
+
+      // Due Date
+      doc
         .font('Helvetica-Bold')
-        .text('Due Date:', 400, invoiceInfoTop + 30)
+        .text('Due Date:', labelX, invoiceInfoTop + 40, { width: 110, align: 'right' })
         .font('Helvetica')
-        .text(new Date(invoice.due_date).toLocaleDateString(), 500, invoiceInfoTop + 30)
+        .text(new Date(invoice.due_date).toLocaleDateString(), valueX, invoiceInfoTop + 40);
+
+      // Status
+      doc
         .font('Helvetica-Bold')
-        .text('Status:', 400, invoiceInfoTop + 45)
+        .text('Status:', labelX, invoiceInfoTop + 60, { width: 110, align: 'right' })
         .font('Helvetica')
-        .text(invoice.status.toUpperCase(), 500, invoiceInfoTop + 45);
+        .text(invoice.status.toUpperCase(), valueX, invoiceInfoTop + 60);
 
       // Bill to section
       doc

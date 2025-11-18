@@ -1,0 +1,7 @@
+frontend/
+*.md
+!DEPLOY_TO_RENDER.md
+.git/
+.gitignore
+backend/.env.example
+backend/node_modules/

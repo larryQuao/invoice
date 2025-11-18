@@ -1,0 +1,37 @@
+services:
+  # Backend API Service
+  - type: web
+    name: invoice-backend
+    runtime: node
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/backend/database.sqlite
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_SECURE
+        value: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: COMPANY_NAME
+        value: Your Company Name
+      - key: COMPANY_EMAIL
+        value: info@yourcompany.com
+      - key: COMPANY_ADDRESS
+        value: 123 Business Street, City, State 12345
+      - key: COMPANY_PHONE
+        value: +1 (555) 123-4567
+      - key: COMPANY_WEBSITE
+        value: www.yourcompany.com

@@ -269,6 +269,39 @@ npm run preview
 - Verify all invoice data is properly formatted
 - Check console logs for specific errors
 
+## Deployment
+
+### Deploy Backend to Render
+
+The backend can be easily deployed to Render (a cloud hosting platform) for free.
+
+**Quick Deploy:**
+1. Push your code to GitHub/GitLab
+2. Sign up at [Render](https://render.com)
+3. Create a new "Blueprint" and select your repository
+4. Render will automatically detect `render.yaml` and deploy
+
+**Detailed Instructions:**
+See [DEPLOY_TO_RENDER.md](DEPLOY_TO_RENDER.md) for complete deployment guide including:
+- Step-by-step deployment instructions
+- Email configuration (Gmail, SendGrid, Mailgun)
+- Database persistence options
+- Environment variable setup
+- Troubleshooting tips
+- Security best practices
+
+### Deploy Frontend
+
+The frontend can be deployed to:
+- **Vercel** (recommended for React apps)
+- **Netlify**
+- **Render Static Sites**
+
+Update the API URL in `frontend/src/services/api.js` to point to your deployed backend:
+```javascript
+const API_BASE_URL = 'https://your-backend.onrender.com/api';
+```
+
 ## License
 
 MIT

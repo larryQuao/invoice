@@ -180,13 +180,32 @@ After deploying the backend, deploy the frontend as a static site:
    - Create a new API key with "Mail Send" permissions
 
 3. **Set Environment Variables in Render**
+
+   **Option A: SendGrid Web API (Recommended - Works on Render Free Tier)**
+
+   The backend automatically detects SendGrid and uses the Web API instead of SMTP when the host contains "sendgrid". This bypasses port blocking issues on Render's free tier.
+
    ```
    EMAIL_HOST=smtp.sendgrid.net
-   EMAIL_PORT=587
-   EMAIL_SECURE=false
-   EMAIL_USER=apikey
+   EMAIL_USER=your-verified-sender@yourdomain.com
    EMAIL_PASSWORD=your-sendgrid-api-key
    ```
+
+   **Option B: Explicit Web API Mode (Alternative)**
+
+   You can also force Web API mode with any email provider:
+
+   ```
+   USE_SENDGRID_API=true
+   EMAIL_USER=your-verified-sender@yourdomain.com
+   EMAIL_PASSWORD=your-sendgrid-api-key
+   ```
+
+   **Note:** When using SendGrid Web API:
+   - `EMAIL_PASSWORD` should be your SendGrid API key (starts with `SG.`)
+   - `EMAIL_USER` must be a verified sender email in your SendGrid account
+   - `EMAIL_HOST` and `EMAIL_PORT` are not used by the Web API but can be set for documentation
+   - The Web API uses HTTPS and won't be blocked by Render's port restrictions
 
 ### Using Mailgun
 
@@ -317,9 +336,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 - Ensure `PORT` is set to `10000`
 
 ### Email Not Sending
+- **SMTP Connection Timeout on Render:** Render's free tier may block outbound SMTP connections on port 587. Use SendGrid Web API instead (see SendGrid configuration above)
 - Verify email credentials are correct
 - Check if your email provider allows SMTP access
-- Review logs for specific error messages
+- Review logs for specific error messages - look for "SendGrid Web API" vs "SMTP" to see which method is being used
+- For SendGrid users: Ensure `EMAIL_USER` is a verified sender in your SendGrid account
 - Test email configuration locally first
 
 ### Database Errors

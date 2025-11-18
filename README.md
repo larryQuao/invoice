@@ -271,36 +271,47 @@ npm run preview
 
 ## Deployment
 
-### Deploy Backend to Render
+### Deploy to Render (One-Click Deployment)
 
-The backend can be easily deployed to Render (a cloud hosting platform) for free.
+Deploy both the backend API and frontend to Render with a single click!
 
-**Quick Deploy:**
+**Quick Deploy (Both Services):**
 1. Push your code to GitHub/GitLab
 2. Sign up at [Render](https://render.com)
 3. Create a new "Blueprint" and select your repository
-4. Render will automatically detect `render.yaml` and deploy
+4. Render will automatically detect `render.yaml` and deploy **both** services:
+   - Backend API (Node.js web service)
+   - Frontend (Static site)
+5. Configure email credentials in the backend service
+6. Access your app at the provided URLs!
+
+**What Gets Deployed:**
+- ✅ Backend API at `https://invoice-backend.onrender.com/api`
+- ✅ Frontend at `https://invoice-frontend.onrender.com`
+- ✅ Automatic HTTPS/SSL
+- ✅ Auto-deploy on git push
+- ✅ Free tier available
+
+**Cost:** 100% Free for testing! (Backend sleeps after 15 min inactivity, frontend is always on)
 
 **Detailed Instructions:**
 See [DEPLOY_TO_RENDER.md](DEPLOY_TO_RENDER.md) for complete deployment guide including:
-- Step-by-step deployment instructions
+- Step-by-step deployment instructions (Blueprint & Manual)
 - Email configuration (Gmail, SendGrid, Mailgun)
 - Database persistence options
 - Environment variable setup
+- Frontend-backend connection
 - Troubleshooting tips
 - Security best practices
 
-### Deploy Frontend
+### Alternative Frontend Deployment
 
-The frontend can be deployed to:
+The frontend can also be deployed separately to:
 - **Vercel** (recommended for React apps)
 - **Netlify**
-- **Render Static Sites**
+- **GitHub Pages**
 
-Update the API URL in `frontend/src/services/api.js` to point to your deployed backend:
-```javascript
-const API_BASE_URL = 'https://your-backend.onrender.com/api';
-```
+Set the `VITE_API_URL` environment variable to point to your deployed backend.
 
 ## License
 

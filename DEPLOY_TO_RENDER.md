@@ -1,6 +1,6 @@
 # Deploying to Render
 
-This guide will walk you through deploying the Invoice Backend API to Render.
+This guide will walk you through deploying both the Backend API and Frontend to Render.
 
 ## Prerequisites
 
@@ -10,9 +10,9 @@ This guide will walk you through deploying the Invoice Backend API to Render.
 
 ## Deployment Methods
 
-### Method 1: Using render.yaml (Recommended)
+### Method 1: Using render.yaml (Recommended - Deploys Both Services)
 
-The easiest way to deploy is using the included `render.yaml` configuration file.
+The easiest way to deploy is using the included `render.yaml` configuration file, which will deploy **both** the backend API and frontend in one go.
 
 1. **Sign in to Render**
    - Go to [https://render.com](https://render.com)
@@ -23,27 +23,35 @@ The easiest way to deploy is using the included `render.yaml` configuration file
    - Select "Blueprint"
    - Connect your repository
    - Render will automatically detect the `render.yaml` file
+   - This will create TWO services:
+     - `invoice-backend` (API server)
+     - `invoice-frontend` (Static site)
 
 3. **Configure Environment Variables**
 
-   After the blueprint is created, you need to set these environment variables:
+   After the blueprint is created, you need to set these environment variables for the **backend service**:
 
-   **Required:**
+   **Required (Backend):**
    - `EMAIL_HOST` - Your SMTP server (e.g., `smtp.gmail.com`)
    - `EMAIL_USER` - Your email address
    - `EMAIL_PASSWORD` - Your email password or app-specific password
 
-   **Optional (with defaults in render.yaml):**
+   **Optional (Backend - with defaults in render.yaml):**
    - `COMPANY_NAME` - Your company name
    - `COMPANY_EMAIL` - Your company email
    - `COMPANY_ADDRESS` - Your company address
    - `COMPANY_PHONE` - Your company phone
    - `COMPANY_WEBSITE` - Your company website
 
+   **Frontend Configuration:**
+   The frontend's `VITE_API_URL` is automatically set in `render.yaml` to point to the backend service.
+
 4. **Deploy**
-   - Click "Apply" to deploy
-   - Wait for the build to complete (3-5 minutes)
-   - Your API will be live at: `https://invoice-backend.onrender.com`
+   - Click "Apply" to deploy both services
+   - Wait for the build to complete (5-7 minutes for both services)
+   - Your services will be live at:
+     - Backend API: `https://invoice-backend.onrender.com/api`
+     - Frontend: `https://invoice-frontend.onrender.com`
 
 ### Method 2: Manual Deployment
 
@@ -94,6 +102,47 @@ The easiest way to deploy is using the included `render.yaml` configuration file
 
 5. **Create Web Service**
    - Click "Create Web Service"
+   - Wait for deployment to complete
+
+### Method 2b: Manual Frontend Deployment
+
+After deploying the backend, deploy the frontend as a static site:
+
+1. **Create New Static Site**
+   - Go to your Render dashboard
+   - Click "New +" → "Static Site"
+   - Connect the same repository
+
+2. **Configure the Static Site**
+
+   **Basic Settings:**
+   - Name: `invoice-frontend`
+   - Region: Choose closest to you
+   - Branch: `main` (or your branch name)
+   - Root Directory: Leave blank
+   - Build Command: `cd frontend && npm install && npm run build`
+   - Publish Directory: `frontend/dist`
+
+3. **Environment Variables**
+
+   Add this environment variable:
+   ```
+   VITE_API_URL=https://invoice-backend.onrender.com/api
+   ```
+
+   **Important:** Replace `invoice-backend.onrender.com` with your actual backend service URL.
+
+4. **Configure Redirects/Rewrites**
+
+   Click "Redirects/Rewrites" and add:
+   - Source: `/*`
+   - Destination: `/index.html`
+   - Type: `Rewrite`
+
+   This ensures React Router works correctly.
+
+5. **Create Static Site**
+   - Click "Create Static Site"
    - Wait for deployment to complete
 
 ## Email Configuration for Production
@@ -187,26 +236,32 @@ The free tier works fine, but data will reset on each deploy.
 - Go to your service in Render dashboard
 - Click "Manual Deploy" → "Deploy latest commit"
 
-## Connecting Frontend to Deployed Backend
+## How Frontend Connects to Backend
 
-Update your frontend's API base URL:
+The frontend automatically connects to the backend using environment variables:
 
-```javascript
-// frontend/src/services/api.js
-const API_BASE_URL = 'https://invoice-backend.onrender.com/api';
-```
+**For Blueprint Deployment (Method 1):**
+- The `render.yaml` automatically sets `VITE_API_URL` to point to the backend
+- No manual configuration needed!
 
-Or use environment variables:
+**For Manual Deployment (Method 2b):**
+- Set `VITE_API_URL` environment variable in the frontend service
+- Use your actual backend URL: `https://your-backend.onrender.com/api`
 
+**For Local Development:**
+- The frontend uses Vite's proxy (`/api` → `http://localhost:3001/api`)
+- No environment variable needed locally
+
+The code in `frontend/src/services/api.js` automatically handles this:
 ```javascript
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 ```
 
-Then set `VITE_API_URL` in your frontend deployment.
-
 ## Testing Your Deployment
 
-1. **Check Health Endpoint**
+### Backend Testing
+
+1. **Check Backend Health Endpoint**
    ```bash
    curl https://your-service.onrender.com/api/health
    ```
@@ -229,9 +284,30 @@ Then set `VITE_API_URL` in your frontend deployment.
      }'
    ```
 
-3. **View Logs**
-   - Go to your service in Render dashboard
+3. **View Backend Logs**
+   - Go to your backend service in Render dashboard
    - Click "Logs" tab to see real-time logs
+
+### Frontend Testing
+
+1. **Access the Frontend**
+   - Open `https://invoice-frontend.onrender.com` in your browser
+   - You should see the invoice management interface
+
+2. **Test Full Flow**
+   - Create a customer
+   - Create an invoice for that customer
+   - Download the PDF
+   - Send the invoice via email (if email is configured)
+
+3. **Check Browser Console**
+   - Open browser DevTools (F12)
+   - Check Console for any errors
+   - Check Network tab to verify API calls are working
+
+4. **View Frontend Logs**
+   - Go to your frontend service in Render dashboard
+   - Click "Logs" tab to see build and deployment logs
 
 ## Troubleshooting
 
@@ -260,6 +336,23 @@ Then set `VITE_API_URL` in your frontend deployment.
 - Check that `backend/package.json` exists
 - Verify all dependencies are listed
 - Review build logs for specific errors
+
+### Frontend Not Loading / Blank Page
+- Check browser console for errors
+- Verify `VITE_API_URL` is set correctly in frontend service
+- Ensure the backend URL includes `/api` at the end
+- Check that redirects/rewrites are configured (`/*` → `/index.html`)
+
+### Frontend Can't Connect to Backend (CORS Errors)
+- Verify backend is running (check health endpoint)
+- Check that `VITE_API_URL` points to the correct backend URL
+- Ensure backend has CORS enabled (already configured in the code)
+- Check browser Network tab for failed API requests
+
+### Frontend Routes Don't Work (404 on Refresh)
+- Ensure redirects/rewrites are configured in Render
+- For blueprint deployment, this is automatic
+- For manual deployment, add rewrite rule: `/*` → `/index.html`
 
 ## Monitoring
 
@@ -296,17 +389,23 @@ Then set `VITE_API_URL` in your frontend deployment.
 
 ## Cost Estimate
 
-**Free Tier:**
-- 750 hours/month (sufficient for one service)
-- Services sleep after 15 minutes of inactivity
-- 100 GB bandwidth/month
-- No persistent disk
+**Free Tier (Both Services):**
+- Backend (Web Service): 750 hours/month
+- Frontend (Static Site): FREE (no hour limits!)
+- Total: $0/month
+- Services sleep after 15 minutes of inactivity (backend only)
+- 100 GB bandwidth/month per service
+- No persistent disk (backend)
 
-**Starter Plan ($7/month):**
-- No sleep mode
-- 400 build minutes
-- Persistent disk available
-- Better performance
+**Starter Plan ($7/month per service):**
+- Backend upgrade: No sleep mode, persistent disk, better performance
+- Frontend upgrade: Usually not needed (static sites are always on)
+- Recommended: Upgrade backend only = $7/month total
+
+**Notes:**
+- Static sites on Render are always active (no sleep)
+- You can run both services on free tier indefinitely
+- Consider upgrading backend to paid plan for production use
 
 ## Support
 
@@ -317,8 +416,10 @@ Then set `VITE_API_URL` in your frontend deployment.
 ## Next Steps
 
 After deployment:
-1. Test all API endpoints
-2. Configure email sending
-3. Deploy the frontend
-4. Update frontend to use production API URL
-5. Test end-to-end invoice creation and sending
+1. ✅ Both services are deployed automatically (if using Blueprint)
+2. Configure email credentials in backend service
+3. Test the frontend URL in your browser
+4. Create a test customer
+5. Create and send a test invoice
+6. Verify email delivery
+7. (Optional) Set up custom domain for frontend

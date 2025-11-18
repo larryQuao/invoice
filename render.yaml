@@ -35,3 +35,20 @@ services:
         value: +1 (555) 123-4567
       - key: COMPANY_WEBSITE
         value: www.yourcompany.com
+
+  # Frontend Static Site
+  - type: web
+    name: invoice-frontend
+    runtime: static
+    env: static
+    region: oregon
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://invoice-backend.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -2,6 +2,19 @@ import nodemailer from 'nodemailer';
 
 // Create reusable transporter
 const createTransporter = () => {
+  // Log configuration (without password) for debugging
+  console.log('Email configuration:', {
+    host: process.env.EMAIL_HOST || 'NOT SET',
+    port: process.env.EMAIL_PORT || '587',
+    secure: process.env.EMAIL_SECURE === 'true',
+    user: process.env.EMAIL_USER || 'NOT SET',
+    hasPassword: !!process.env.EMAIL_PASSWORD,
+  });
+
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    throw new Error('Email configuration incomplete. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASSWORD environment variables.');
+  }
+
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT || '587'),
@@ -10,6 +23,9 @@ const createTransporter = () => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 };
 

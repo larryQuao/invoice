@@ -182,9 +182,18 @@ const sendInvoiceEmailWithSendGrid = async (invoice, pdfPath) => {
   const pdfBuffer = fs.readFileSync(pdfPath);
   const pdfBase64 = pdfBuffer.toString('base64');
 
+  const fromEmail = process.env.EMAIL_USER || process.env.COMPANY_EMAIL;
+
+  console.log('SendGrid email config:', {
+    from: fromEmail,
+    to: invoice.customer_email,
+    hasApiKey: !!process.env.EMAIL_PASSWORD,
+    apiKeyPrefix: process.env.EMAIL_PASSWORD?.substring(0, 10) + '...'
+  });
+
   const msg = {
     to: invoice.customer_email,
-    from: process.env.EMAIL_USER || process.env.COMPANY_EMAIL,
+    from: fromEmail,
     subject: `Invoice ${invoice.invoice_number} from ${process.env.COMPANY_NAME}`,
     html: generateEmailHTML(invoice),
     attachments: [
@@ -234,6 +243,12 @@ export const sendInvoiceEmail = async (invoice, pdfPath) => {
     }
   } catch (error) {
     console.error('❌ Error sending email:', error);
+
+    // Log detailed error information for SendGrid errors
+    if (error.response && error.response.body) {
+      console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
+    }
+
     throw error;
   }
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { customerAPI, invoiceAPI } from '../services/api';
 import { format } from 'date-fns';
 
@@ -122,12 +122,23 @@ function CreateInvoice() {
 
   return (
     <div>
+      {/* Breadcrumb */}
       <div className="mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+          <Link to="/" className="hover:text-indigo-600">Dashboard</Link>
+          <span>/</span>
+          <Link to="/invoices" className="hover:text-indigo-600">Invoices</Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium">Create New</span>
+        </div>
         <button
-          onClick={() => navigate('/')}
-          className="text-indigo-600 hover:text-indigo-800 font-medium"
+          onClick={() => navigate('/invoices')}
+          className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2"
         >
-          ← Back to Invoices
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Invoices
         </button>
       </div>
 

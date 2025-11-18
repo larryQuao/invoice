@@ -92,11 +92,25 @@ function InvoiceList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Invoices</h2>
-        <Link to="/create-invoice" className="btn-primary">
-          + Create Invoice
-        </Link>
+      {/* Page Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+          <Link to="/" className="hover:text-indigo-600">Dashboard</Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium">Invoices</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">All Invoices</h2>
+            <p className="text-sm text-gray-500 mt-1">Manage and track all your invoices</p>
+          </div>
+          <Link to="/create-invoice" className="btn-primary flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Invoice
+          </Link>
+        </div>
       </div>
 
       {error && (

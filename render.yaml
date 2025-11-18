@@ -44,7 +44,7 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://invoice-backend.onrender.com/api
+        value: https://invoice-backend-ootw.onrender.com/api
     routes:
       - type: rewrite
         source: /*

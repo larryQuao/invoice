@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { invoiceAPI } from '../services/api';
+import { invoiceAPI, API_BASE_URL } from '../services/api';
 
 function InvoiceList() {
   const [invoices, setInvoices] = useState([]);
@@ -86,6 +86,14 @@ function InvoiceList() {
     // WhatsApp expects: country code + number (no + or special characters)
     const cleanPhone = invoice.customer_phone.replace(/[^\d]/g, '');
 
+    // Create PDF download link
+    // If API_BASE_URL is relative (starts with /), use window.location.origin
+    // Otherwise use the full URL (for production)
+    const baseUrl = API_BASE_URL.startsWith('http')
+      ? API_BASE_URL
+      : `${window.location.origin}${API_BASE_URL}`;
+    const pdfUrl = `${baseUrl}/invoices/${invoice.id}/pdf`;
+
     // Create WhatsApp message
     const message = `Hello ${invoice.customer_name}!
 
@@ -99,7 +107,10 @@ This is a friendly reminder about your invoice:
 📅 *Due Date:* ${new Date(invoice.due_date).toLocaleDateString()}
 📊 *Status:* ${invoice.status.toUpperCase()}
 
-The invoice PDF has been sent to your email (${invoice.customer_email}).
+📎 *Download Invoice PDF:*
+${pdfUrl}
+
+The invoice has also been sent to your email (${invoice.customer_email}).
 
 If you have any questions, please don't hesitate to reach out.
 

@@ -83,7 +83,7 @@ export const Invoice = {
 
   findAll: () => {
     const stmt = db.prepare(`
-      SELECT i.*, c.name as customer_name, c.email as customer_email
+      SELECT i.*, c.name as customer_name, c.email as customer_email, c.phone as customer_phone
       FROM invoices i
       JOIN customers c ON i.customer_id = c.id
       ORDER BY i.created_at DESC

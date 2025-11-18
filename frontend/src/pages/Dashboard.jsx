@@ -25,8 +25,9 @@ function Dashboard() {
         customerAPI.getAll(),
       ]);
 
-      const invoices = invoicesRes.data.data;
-      const customers = customersRes.data.data;
+      // Safely extract data with fallback to empty arrays
+      const invoices = Array.isArray(invoicesRes?.data?.data) ? invoicesRes.data.data : [];
+      const customers = Array.isArray(customersRes?.data?.data) ? customersRes.data.data : [];
 
       // Calculate stats
       const draftCount = invoices.filter((inv) => inv.status === 'draft').length;
@@ -47,6 +48,8 @@ function Dashboard() {
       setRecentInvoices(invoices.slice(0, 5));
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      // Set empty arrays on error to prevent crashes
+      setRecentInvoices([]);
     } finally {
       setLoading(false);
     }

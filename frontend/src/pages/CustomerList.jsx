@@ -15,11 +15,14 @@ function CustomerList() {
     try {
       setLoading(true);
       const response = await customerAPI.getAll();
-      setCustomers(response.data.data);
+      // Safely extract data with fallback to empty array
+      const data = Array.isArray(response?.data?.data) ? response.data.data : [];
+      setCustomers(data);
       setError(null);
     } catch (err) {
       setError('Failed to load customers');
       console.error(err);
+      setCustomers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

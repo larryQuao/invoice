@@ -3,22 +3,16 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import customerRoutes from './routes/customerRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
-import db from './config/database.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import pool from './config/database.js';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize database tables on startup
-const initializeDatabase = () => {
+const initializeDatabase = async () => {
   try {
     // Create tables if they don't exist
-    db.exec(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS customers (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -29,12 +23,12 @@ const initializeDatabase = () => {
         state TEXT,
         zip TEXT,
         country TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    db.exec(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS invoices (
         id TEXT PRIMARY KEY,
         invoice_number TEXT UNIQUE NOT NULL,
@@ -42,38 +36,44 @@ const initializeDatabase = () => {
         issue_date TEXT NOT NULL,
         due_date TEXT NOT NULL,
         status TEXT DEFAULT 'draft',
-        subtotal REAL DEFAULT 0,
-        tax_rate REAL DEFAULT 0,
-        tax_amount REAL DEFAULT 0,
-        discount REAL DEFAULT 0,
-        total REAL DEFAULT 0,
+        subtotal NUMERIC DEFAULT 0,
+        tax_rate NUMERIC DEFAULT 0,
+        tax_amount NUMERIC DEFAULT 0,
+        discount NUMERIC DEFAULT 0,
+        total NUMERIC DEFAULT 0,
         notes TEXT,
         terms TEXT,
         email_sent INTEGER DEFAULT 0,
-        email_sent_at DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        email_sent_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
       )
     `);
 
-    db.exec(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS invoice_items (
         id TEXT PRIMARY KEY,
         invoice_id TEXT NOT NULL,
         description TEXT NOT NULL,
-        quantity REAL DEFAULT 1,
-        unit_price REAL DEFAULT 0,
-        amount REAL DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        quantity NUMERIC DEFAULT 1,
+        unit_price NUMERIC DEFAULT 0,
+        amount NUMERIC DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
       )
     `);
 
-    db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);
-      CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
-      CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id)
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status)
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id)
     `);
 
     console.log('✅ Database initialized successfully');
@@ -84,7 +84,7 @@ const initializeDatabase = () => {
 };
 
 // Initialize database
-initializeDatabase();
+await initializeDatabase();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

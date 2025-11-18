@@ -1,68 +1,65 @@
-import db from '../config/database.js';
+import pool from '../config/database.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export const Customer = {
-  create: (customerData) => {
+  create: async (customerData) => {
     const id = uuidv4();
-    const stmt = db.prepare(`
-      INSERT INTO customers (id, name, email, phone, address, city, state, zip, country)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      customerData.name,
-      customerData.email,
-      customerData.phone || null,
-      customerData.address || null,
-      customerData.city || null,
-      customerData.state || null,
-      customerData.zip || null,
-      customerData.country || null
+    await pool.query(
+      `INSERT INTO customers (id, name, email, phone, address, city, state, zip, country)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        id,
+        customerData.name,
+        customerData.email,
+        customerData.phone || null,
+        customerData.address || null,
+        customerData.city || null,
+        customerData.state || null,
+        customerData.zip || null,
+        customerData.country || null,
+      ]
     );
 
     return Customer.findById(id);
   },
 
-  findById: (id) => {
-    const stmt = db.prepare('SELECT * FROM customers WHERE id = ?');
-    return stmt.get(id);
+  findById: async (id) => {
+    const result = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+    return result.rows[0];
   },
 
-  findByEmail: (email) => {
-    const stmt = db.prepare('SELECT * FROM customers WHERE email = ?');
-    return stmt.get(email);
+  findByEmail: async (email) => {
+    const result = await pool.query('SELECT * FROM customers WHERE email = $1', [email]);
+    return result.rows[0];
   },
 
-  findAll: () => {
-    const stmt = db.prepare('SELECT * FROM customers ORDER BY created_at DESC');
-    return stmt.all();
+  findAll: async () => {
+    const result = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
+    return result.rows;
   },
 
-  update: (id, customerData) => {
-    const stmt = db.prepare(`
-      UPDATE customers
-      SET name = ?, email = ?, phone = ?, address = ?, city = ?, state = ?, zip = ?, country = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      customerData.name,
-      customerData.email,
-      customerData.phone || null,
-      customerData.address || null,
-      customerData.city || null,
-      customerData.state || null,
-      customerData.zip || null,
-      customerData.country || null,
-      id
+  update: async (id, customerData) => {
+    await pool.query(
+      `UPDATE customers
+       SET name = $1, email = $2, phone = $3, address = $4, city = $5, state = $6, zip = $7, country = $8, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $9`,
+      [
+        customerData.name,
+        customerData.email,
+        customerData.phone || null,
+        customerData.address || null,
+        customerData.city || null,
+        customerData.state || null,
+        customerData.zip || null,
+        customerData.country || null,
+        id,
+      ]
     );
 
     return Customer.findById(id);
   },
 
-  delete: (id) => {
-    const stmt = db.prepare('DELETE FROM customers WHERE id = ?');
-    return stmt.run(id);
-  }
+  delete: async (id) => {
+    await pool.query('DELETE FROM customers WHERE id = $1', [id]);
+  },
 };

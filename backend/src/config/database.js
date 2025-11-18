@@ -1,14 +1,19 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import pkg from 'pg';
+const { Pool } = pkg;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../database.sqlite');
-const db = new Database(dbPath);
+// Test the connection
+pool.on('connect', () => {
+  console.log('✅ Connected to PostgreSQL database');
+});
 
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle client', err);
+  process.exit(-1);
+});
 
-export default db;
+export default pool;

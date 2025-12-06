@@ -30,7 +30,7 @@ export const Invoice = {
 
     await invoiceRef.set(invoiceDoc);
 
-    // Insert invoice items as a subcollection
+    // Insert items as subcollection
     if (invoiceData.items?.length) {
       for (const item of invoiceData.items) {
         const itemId = uuidv4();
@@ -45,41 +45,45 @@ export const Invoice = {
       }
     }
 
-    return Invoice.findById(id);
+    return await Invoice.findById(id);
   },
 
   findById: async (id) => {
     const invoiceSnap = await db.collection('invoices').doc(id).get();
     if (!invoiceSnap.exists) return null;
 
-    const invoice = invoiceSnap.data();
+    let invoice = invoiceSnap.data();
+
+    // Convert Firestore timestamps → JS Dates
+    if (invoice.issue_date?.seconds)
+      invoice.issue_date = new Date(invoice.issue_date.seconds * 1000);
+
+    if (invoice.due_date?.seconds)
+      invoice.due_date = new Date(invoice.due_date.seconds * 1000);
 
     // Load invoice items
-    const itemsSnap = await db.collection('invoices')
+    const itemsSnap = await db
+      .collection('invoices')
       .doc(id)
       .collection('items')
       .get();
 
-    invoice.items = itemsSnap.docs.map(doc => doc.data());
-    return invoice;
-  },
+    invoice.items = itemsSnap.docs.map((d) => d.data());
 
-  findByInvoiceNumber: async (num) => {
-    const snap = await db.collection('invoices')
-      .where('invoice_number', '==', num)
-      .limit(1)
-      .get();
+    // Load customer details (was provided via SQL JOIN before)
+    const customerSnap = await db.collection('customers').doc(invoice.customer_id).get();
+    if (customerSnap.exists) {
+      const c = customerSnap.data();
+      invoice.customer_name = c.name;
+      invoice.customer_email = c.email;
+      invoice.customer_phone = c.phone;
+      invoice.customer_address = c.address;
+      invoice.customer_city = c.city;
+      invoice.customer_state = c.state;
+      invoice.customer_zip = c.zip;
+      invoice.customer_country = c.country;
+    }
 
-    if (snap.empty) return null;
-
-    const invoice = snap.docs[0].data();
-
-    const itemsSnap = await db.collection('invoices')
-      .doc(invoice.id)
-      .collection('items')
-      .get();
-
-    invoice.items = itemsSnap.docs.map(doc => doc.data());
     return invoice;
   },
 
@@ -88,7 +92,7 @@ export const Invoice = {
       .orderBy('created_at', 'desc')
       .get();
 
-    return snap.docs.map(doc => doc.data());
+    return snap.docs.map((d) => d.data());
   },
 
   update: async (id, invoiceData) => {
@@ -99,7 +103,7 @@ export const Invoice = {
       updated_at: new Date(),
     });
 
-    return Invoice.findById(id);
+    return await Invoice.findById(id);
   },
 
   updateEmailStatus: async (id, sent = true) => {
@@ -111,19 +115,18 @@ export const Invoice = {
       updated_at: new Date(),
     });
 
-    return Invoice.findById(id);
+    return await Invoice.findById(id);
   },
 
   delete: async (id) => {
     const ref = db.collection('invoices').doc(id);
 
-    // Delete all invoice items
     const itemsSnap = await ref.collection('items').get();
     const batch = db.batch();
 
-    itemsSnap.docs.forEach(doc => batch.delete(doc.ref));
-
+    itemsSnap.docs.forEach((doc) => batch.delete(doc.ref));
     batch.delete(ref);
+
     await batch.commit();
-  }
+  },
 };

@@ -6,25 +6,41 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Normalize Firestore Timestamp → JS Date
+const normalizeDate = (value) => {
+  if (!value) return '';
+  if (value instanceof Date) return value;
+  if (value.seconds) return new Date(value.seconds * 1000);
+  return new Date(value);
+};
+
 export const generateInvoicePDF = (invoice) => {
   return new Promise((resolve, reject) => {
     try {
-      // Create PDF document
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      // Ensure dates are valid JS Date objects
+      invoice.issue_date = normalizeDate(invoice.issue_date);
+      invoice.due_date = normalizeDate(invoice.due_date);
 
-      // Create output directory if it doesn't exist
-      const outputDir = path.join(__dirname, '../../output');
+      // Ensure items array exists
+      invoice.items = Array.isArray(invoice.items) ? invoice.items : [];
+
+      // Use Render’s only writable directory
+      const outputDir = '/tmp';
+
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
       const fileName = `invoice-${invoice.invoice_number}.pdf`;
       const filePath = path.join(outputDir, fileName);
-      const stream = fs.createWriteStream(filePath);
 
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const stream = fs.createWriteStream(filePath);
       doc.pipe(stream);
 
-      // Company header
+      // -----------------------------
+      // HEADER + COMPANY INFO
+      // -----------------------------
       doc
         .fontSize(20)
         .font('Helvetica-Bold')
@@ -38,121 +54,114 @@ export const generateInvoicePDF = (invoice) => {
         .text(process.env.COMPANY_EMAIL || 'info@company.com', 50, 110)
         .text(process.env.COMPANY_WEBSITE || 'www.company.com', 50, 125);
 
-      // Invoice title
+      // Title
       doc
         .fontSize(28)
         .font('Helvetica-Bold')
         .text('INVOICE', 400, 50, { align: 'right' });
 
-      // Invoice details box - Right aligned with proper spacing
-      const invoiceInfoTop = 150;
+      // -----------------------------
+      // INVOICE DETAILS
+      // -----------------------------
+      const top = 150;
       const labelX = 350;
       const valueX = 470;
 
       doc.fontSize(10);
 
-      // Invoice Number
-      doc
-        .font('Helvetica-Bold')
-        .text('Invoice Number:', labelX, invoiceInfoTop, { width: 110, align: 'right' })
+      doc.font('Helvetica-Bold')
+        .text('Invoice Number:', labelX, top)
         .font('Helvetica')
-        .text(invoice.invoice_number, valueX, invoiceInfoTop, { width: 130 });
+        .text(invoice.invoice_number || 'N/A', valueX, top);
 
-      // Issue Date
-      doc
-        .font('Helvetica-Bold')
-        .text('Issue Date:', labelX, invoiceInfoTop + 20, { width: 110, align: 'right' })
+      doc.font('Helvetica-Bold')
+        .text('Issue Date:', labelX, top + 20)
         .font('Helvetica')
-        .text(new Date(invoice.issue_date).toLocaleDateString(), valueX, invoiceInfoTop + 20);
+        .text(invoice.issue_date?.toLocaleDateString() || 'N/A', valueX, top + 20);
 
-      // Due Date
-      doc
-        .font('Helvetica-Bold')
-        .text('Due Date:', labelX, invoiceInfoTop + 40, { width: 110, align: 'right' })
+      doc.font('Helvetica-Bold')
+        .text('Due Date:', labelX, top + 40)
         .font('Helvetica')
-        .text(new Date(invoice.due_date).toLocaleDateString(), valueX, invoiceInfoTop + 40);
+        .text(invoice.due_date?.toLocaleDateString() || 'N/A', valueX, top + 40);
 
-      // Status
-      doc
-        .font('Helvetica-Bold')
-        .text('Status:', labelX, invoiceInfoTop + 60, { width: 110, align: 'right' })
+      doc.font('Helvetica-Bold')
+        .text('Status:', labelX, top + 60)
         .font('Helvetica')
-        .text(invoice.status.toUpperCase(), valueX, invoiceInfoTop + 60);
+        .text((invoice.status || 'draft').toUpperCase(), valueX, top + 60);
 
-      // Bill to section
+      // -----------------------------
+      // BILL TO — CUSTOMER DETAILS
+      // -----------------------------
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text('BILL TO:', 50, invoiceInfoTop);
+        .text('BILL TO:', 50, top);
 
       doc
         .fontSize(10)
         .font('Helvetica')
-        .text(invoice.customer_name, 50, invoiceInfoTop + 20)
-        .text(invoice.customer_email, 50, invoiceInfoTop + 35);
+        .text(invoice.customer_name || 'N/A', 50, top + 20)
+        .text(invoice.customer_email || 'N/A', 50, top + 35);
 
       if (invoice.customer_address) {
-        doc.text(invoice.customer_address, 50, invoiceInfoTop + 50);
+        doc.text(invoice.customer_address, 50, top + 50);
       }
 
-      if (invoice.customer_city || invoice.customer_state || invoice.customer_zip) {
-        const location = [invoice.customer_city, invoice.customer_state, invoice.customer_zip]
-          .filter(Boolean)
-          .join(', ');
-        doc.text(location, 50, invoiceInfoTop + 65);
+      const cityLine = [
+        invoice.customer_city,
+        invoice.customer_state,
+        invoice.customer_zip,
+      ].filter(Boolean).join(', ');
+
+      if (cityLine) {
+        doc.text(cityLine, 50, top + 65);
       }
 
       if (invoice.customer_phone) {
-        doc.text(invoice.customer_phone, 50, invoiceInfoTop + 80);
+        doc.text(invoice.customer_phone, 50, top + 80);
       }
 
-      // Items table
+      // -----------------------------
+      // ITEMS TABLE
+      // -----------------------------
       const tableTop = 280;
-      doc
-        .fontSize(10)
-        .font('Helvetica-Bold');
 
-      // Table headers
-      doc
-        .text('Description', 50, tableTop)
-        .text('Qty', 320, tableTop, { width: 50, align: 'right' })
-        .text('Unit Price', 380, tableTop, { width: 80, align: 'right' })
-        .text('Amount', 470, tableTop, { width: 80, align: 'right' });
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.text('Description', 50, tableTop);
+      doc.text('Qty', 320, tableTop, { width: 50, align: 'right' });
+      doc.text('Unit Price', 380, tableTop, { width: 80, align: 'right' });
+      doc.text('Amount', 470, tableTop, { width: 80, align: 'right' });
 
-      // Table line
-      doc
-        .moveTo(50, tableTop + 15)
-        .lineTo(550, tableTop + 15)
-        .stroke();
+      doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
-      // Table items
       let position = tableTop + 25;
       doc.font('Helvetica');
 
       invoice.items.forEach((item) => {
         doc
-          .text(item.description, 50, position, { width: 250 })
-          .text(item.quantity.toString(), 320, position, { width: 50, align: 'right' })
-          .text(`$${item.unit_price.toFixed(2)}`, 380, position, { width: 80, align: 'right' })
-          .text(`$${item.amount.toFixed(2)}`, 470, position, { width: 80, align: 'right' });
+          .text(item.description || '', 50, position, { width: 250 })
+          .text((item.quantity ?? 0).toString(), 320, position, { width: 50, align: 'right' })
+          .text(`$${(item.unit_price ?? 0).toFixed(2)}`, 380, position, { width: 80, align: 'right' })
+          .text(`$${(item.amount ?? 0).toFixed(2)}`, 470, position, { width: 80, align: 'right' });
 
         position += 30;
       });
 
-      // Totals section
+      // -----------------------------
+      // TOTALS
+      // -----------------------------
       position += 20;
       const totalsX = 380;
 
-      doc.font('Helvetica');
       doc
         .text('Subtotal:', totalsX, position)
-        .text(`$${invoice.subtotal.toFixed(2)}`, 470, position, { width: 80, align: 'right' });
+        .text(`$${(invoice.subtotal ?? 0).toFixed(2)}`, 470, position, { width: 80, align: 'right' });
 
       position += 20;
 
       if (invoice.discount > 0) {
         doc
-          .text(`Discount:`, totalsX, position)
+          .text('Discount:', totalsX, position)
           .text(`-$${invoice.discount.toFixed(2)}`, 470, position, { width: 80, align: 'right' });
         position += 20;
       }
@@ -164,69 +173,42 @@ export const generateInvoicePDF = (invoice) => {
         position += 20;
       }
 
-      // Total line
-      doc
-        .moveTo(380, position)
-        .lineTo(550, position)
-        .stroke();
+      doc.moveTo(380, position).lineTo(550, position).stroke();
 
       position += 10;
-
-      doc
-        .fontSize(12)
-        .font('Helvetica-Bold')
+      doc.fontSize(12).font('Helvetica-Bold')
         .text('TOTAL:', totalsX, position)
-        .text(`$${invoice.total.toFixed(2)}`, 470, position, { width: 80, align: 'right' });
+        .text(`$${(invoice.total ?? 0).toFixed(2)}`, 470, position, { width: 80, align: 'right' });
 
-      // Notes section
+      // -----------------------------
+      // NOTES + TERMS
+      // -----------------------------
       if (invoice.notes) {
         position += 50;
-        doc
-          .fontSize(10)
-          .font('Helvetica-Bold')
-          .text('Notes:', 50, position);
-
-        doc
-          .font('Helvetica')
-          .text(invoice.notes, 50, position + 15, { width: 500 });
+        doc.font('Helvetica-Bold').fontSize(10).text('Notes:', 50, position);
+        doc.font('Helvetica').text(invoice.notes, 50, position + 15, { width: 500 });
       }
 
-      // Terms section
       if (invoice.terms) {
-        position += (invoice.notes ? 80 : 50);
-        doc
-          .fontSize(10)
-          .font('Helvetica-Bold')
-          .text('Terms & Conditions:', 50, position);
-
-        doc
-          .font('Helvetica')
-          .text(invoice.terms, 50, position + 15, { width: 500 });
+        position += invoice.notes ? 80 : 50;
+        doc.font('Helvetica-Bold').fontSize(10).text('Terms & Conditions:', 50, position);
+        doc.font('Helvetica').text(invoice.terms, 50, position + 15, { width: 500 });
       }
 
       // Footer
       doc
         .fontSize(8)
         .font('Helvetica')
-        .text(
-          'Thank you for your business!',
-          50,
-          700,
-          { align: 'center', width: 500 }
-        );
+        .text('Thank you for your business!', 50, 700, { align: 'center', width: 500 });
 
-      // Finalize PDF
+      // Finish PDF
       doc.end();
 
-      stream.on('finish', () => {
-        resolve(filePath);
-      });
+      stream.on('finish', () => resolve(filePath));
+      stream.on('error', (error) => reject(error));
 
-      stream.on('error', (error) => {
-        reject(error);
-      });
-    } catch (error) {
-      reject(error);
+    } catch (err) {
+      reject(err);
     }
   });
 };

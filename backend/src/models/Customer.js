@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 export const Customer = {
   create: async (customerData) => {
     const id = uuidv4();
+
     const doc = {
       id,
       name: customerData.name,
@@ -41,21 +42,19 @@ export const Customer = {
       .orderBy('created_at', 'desc')
       .get();
 
-    return snap.docs.map(doc => doc.data());
+    return snap.docs.map((doc) => doc.data());
   },
 
   update: async (id, customerData) => {
-    const ref = db.collection('customers').doc(id);
-    await ref.update({
+    await db.collection('customers').doc(id).update({
       ...customerData,
       updated_at: new Date(),
     });
 
-    const snap = await ref.get();
-    return snap.data();
+    return await Customer.findById(id);
   },
 
   delete: async (id) => {
     await db.collection('customers').doc(id).delete();
-  }
+  },
 };

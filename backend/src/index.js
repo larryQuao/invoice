@@ -3,7 +3,17 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import customerRoutes from './routes/customerRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
-import db from './config/database.js';
+import admin from "firebase-admin";
+
+const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+export const db = admin.firestore();
+
+
 
 // Load environment variables
 dotenv.config();

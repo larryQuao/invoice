@@ -26,7 +26,7 @@ export const createInvoice = async (req, res) => {
       total,
     };
 
-    const invoice = Invoice.create(invoiceData);
+    const invoice = await Invoice.create(invoiceData);
     res.status(201).json({ success: true, data: invoice });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -35,7 +35,7 @@ export const createInvoice = async (req, res) => {
 
 export const getInvoices = async (req, res) => {
   try {
-    const invoices = Invoice.findAll();
+    const invoices = await Invoice.findAll();
     res.json({ success: true, data: invoices });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -44,7 +44,7 @@ export const getInvoices = async (req, res) => {
 
 export const getInvoice = async (req, res) => {
   try {
-    const invoice = Invoice.findById(req.params.id);
+    const invoice = await Invoice.findById(req.params.id);
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found' });
     }
@@ -56,7 +56,7 @@ export const getInvoice = async (req, res) => {
 
 export const updateInvoice = async (req, res) => {
   try {
-    const invoice = Invoice.update(req.params.id, req.body);
+    const invoice = await Invoice.update(req.params.id, req.body);
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found' });
     }
@@ -68,7 +68,7 @@ export const updateInvoice = async (req, res) => {
 
 export const deleteInvoice = async (req, res) => {
   try {
-    Invoice.delete(req.params.id);
+    await Invoice.delete(req.params.id);
     res.json({ success: true, message: 'Invoice deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -77,7 +77,7 @@ export const deleteInvoice = async (req, res) => {
 
 export const generatePDF = async (req, res) => {
   try {
-    const invoice = Invoice.findById(req.params.id);
+    const invoice = await Invoice.findById(req.params.id);
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found' });
     }
@@ -101,7 +101,7 @@ export const generatePDF = async (req, res) => {
 
 export const emailInvoice = async (req, res) => {
   try {
-    const invoice = Invoice.findById(req.params.id);
+    const invoice = await Invoice.findById(req.params.id);
     if (!invoice) {
       return res.status(404).json({ success: false, message: 'Invoice not found' });
     }
@@ -113,7 +113,7 @@ export const emailInvoice = async (req, res) => {
     const result = await sendInvoiceEmail(invoice, pdfPath);
 
     // Update invoice email status
-    Invoice.updateEmailStatus(req.params.id, true);
+    await Invoice.updateEmailStatus(req.params.id, true);
 
     // Clean up: delete the PDF file
     fs.unlink(pdfPath, (unlinkErr) => {

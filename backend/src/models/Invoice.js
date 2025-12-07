@@ -1,12 +1,12 @@
-import { db } from '../index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { db } from "../index.js";
+import { v4 as uuidv4 } from "uuid";
 
 export const Invoice = {
   create: async (invoiceData) => {
     const id = uuidv4();
     const invoiceNumber = invoiceData.invoice_number || `INV-${Date.now()}`;
 
-    const invoiceRef = db.collection('invoices').doc(id);
+    const invoiceRef = db.collection("invoices").doc(id);
 
     const invoiceDoc = {
       id,
@@ -14,7 +14,7 @@ export const Invoice = {
       customer_id: invoiceData.customer_id,
       issue_date: invoiceData.issue_date,
       due_date: invoiceData.due_date,
-      status: invoiceData.status || 'draft',
+      status: invoiceData.status || "draft",
       subtotal: invoiceData.subtotal || 0,
       tax_rate: invoiceData.tax_rate || 0,
       tax_amount: invoiceData.tax_amount || 0,
@@ -34,7 +34,7 @@ export const Invoice = {
     if (invoiceData.items?.length) {
       for (const item of invoiceData.items) {
         const itemId = uuidv4();
-        await invoiceRef.collection('items').doc(itemId).set({
+        await invoiceRef.collection("items").doc(itemId).set({
           id: itemId,
           description: item.description,
           quantity: item.quantity,
@@ -49,7 +49,7 @@ export const Invoice = {
   },
 
   findById: async (id) => {
-    const invoiceSnap = await db.collection('invoices').doc(id).get();
+    const invoiceSnap = await db.collection("invoices").doc(id).get();
     if (!invoiceSnap.exists) return null;
 
     let invoice = invoiceSnap.data();
@@ -63,15 +63,18 @@ export const Invoice = {
 
     // Load invoice items
     const itemsSnap = await db
-      .collection('invoices')
+      .collection("invoices")
       .doc(id)
-      .collection('items')
+      .collection("items")
       .get();
 
     invoice.items = itemsSnap.docs.map((d) => d.data());
 
     // Load customer details (was provided via SQL JOIN before)
-    const customerSnap = await db.collection('customers').doc(invoice.customer_id).get();
+    const customerSnap = await db
+      .collection("customers")
+      .doc(invoice.customer_id)
+      .get();
     if (customerSnap.exists) {
       const c = customerSnap.data();
       invoice.customer_name = c.name;
@@ -88,15 +91,36 @@ export const Invoice = {
   },
 
   findAll: async () => {
-    const snap = await db.collection('invoices')
-      .orderBy('created_at', 'desc')
+    const snap = await db
+      .collection("invoices")
+      .orderBy("created_at", "desc")
       .get();
 
-    return snap.docs.map((d) => d.data());
+    const invoices = [];
+
+    for (const doc of snap.docs) {
+      const invoice = doc.data();
+
+      // Fetch customer details
+      const customerSnap = await db
+        .collection("customers")
+        .doc(invoice.customer_id)
+        .get();
+
+      if (customerSnap.exists) {
+        const c = customerSnap.data();
+        invoice.customer_name = c.name;
+        invoice.customer_email = c.email;
+      }
+
+      invoices.push(invoice);
+    }
+
+    return invoices;
   },
 
   update: async (id, invoiceData) => {
-    const ref = db.collection('invoices').doc(id);
+    const ref = db.collection("invoices").doc(id);
 
     await ref.update({
       ...invoiceData,
@@ -107,7 +131,7 @@ export const Invoice = {
   },
 
   updateEmailStatus: async (id, sent = true) => {
-    const ref = db.collection('invoices').doc(id);
+    const ref = db.collection("invoices").doc(id);
 
     await ref.update({
       email_sent: sent,
@@ -119,9 +143,9 @@ export const Invoice = {
   },
 
   delete: async (id) => {
-    const ref = db.collection('invoices').doc(id);
+    const ref = db.collection("invoices").doc(id);
 
-    const itemsSnap = await ref.collection('items').get();
+    const itemsSnap = await ref.collection("items").get();
     const batch = db.batch();
 
     itemsSnap.docs.forEach((doc) => batch.delete(doc.ref));
